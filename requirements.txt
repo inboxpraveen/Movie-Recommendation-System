@@ -1,5 +1,5 @@
 # Core Framework
-Django==6.0.4
+Django==6.0.6
 gunicorn==23.0.0
 
 # Data Processing & ML
