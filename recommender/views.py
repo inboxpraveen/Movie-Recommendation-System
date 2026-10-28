@@ -53,6 +53,20 @@ def _as_list(value) -> list:
     return []
 
 
+# The trainer lowercases genres and strips spaces so they work as TF-IDF tokens,
+# and that same column is saved for display. These two are the only TMDB genres
+# that need more than title-casing to read properly.
+_GENRE_LABELS = {'sciencefiction': 'Science Fiction', 'tvmovie': 'TV Movie'}
+
+
+def _genre_label(genre) -> str:
+    """Display form of a stored genre: ``sciencefiction`` becomes ``Science Fiction``."""
+    text = str(genre).strip()
+    if text != text.lower():
+        return text  # already display-cased
+    return _GENRE_LABELS.get(text, text.title())
+
+
 def _clean(value, default='Unknown'):
     """Return a display-safe scalar, collapsing NaN/None to a default."""
     if value is None:
@@ -283,7 +297,7 @@ class MovieRecommender:
         rating = _number(movie.get('vote_average'))
         votes = _number(movie.get('vote_count'))
         overview = str(_clean(movie.get('overview'), ''))
-        genres = _as_list(movie.get('genres'))[:3]
+        genres = [_genre_label(g) for g in _as_list(movie.get('genres'))[:3]]
 
         return {
             'title': title,
@@ -339,7 +353,7 @@ class MovieRecommender:
                 'year': _year(source.get('release_date')),
                 'production': _clean(source.get('primary_company')),
                 'rating': f"{source_rating:.1f}/10" if source_rating is not None else 'N/A',
-                'genres': ', '.join(_as_list(source.get('genres'))[:3]) or 'N/A',
+                'genres': ', '.join(_genre_label(g) for g in _as_list(source.get('genres'))[:3]) or 'N/A',
                 'poster_url': (
                     f"https://image.tmdb.org/t/p/w342{_clean(source.get('poster_path'), '')}"
                     if _clean(source.get('poster_path'), None) else None

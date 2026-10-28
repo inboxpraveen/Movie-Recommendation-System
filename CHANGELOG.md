@@ -62,6 +62,9 @@ This project follows [Semantic Versioning](https://semver.org/) and the changelo
   is how the trainer writes them.
 - The home page said recommendations match on "cast". The model uses genres,
   keywords, studios, countries and plot text; the wording now says so.
+- Genres appeared as the trainer's internal tokens (`sciencefiction`, `tvmovie`,
+  everything lowercase). The views now turn them into display names such as
+  "Science Fiction", so existing models need no retraining.
 
 ### Changed
 - The catalogue is no longer inlined into every page render. Autocomplete uses
@@ -110,6 +113,7 @@ This project follows [Semantic Versioning](https://semver.org/) and the changelo
   loading-screen screenshot were removed.
 
 ### Added
+- `LICENSE` now names the author as copyright holder instead of the project.
 - `SECURITY.md`: private vulnerability reporting and deployment notes.
 - `assets/images-for-readme/social-preview.png` (1280x640) for the repository's
   social card.
