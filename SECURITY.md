@@ -8,8 +8,7 @@ Security fixes go into the latest release on `master`. Older releases are not pa
 
 Please report security issues privately, not in a public issue.
 
-1. Open the repository's **Security** tab and choose **Report a vulnerability**. This creates a private advisory visible only to the maintainer.
-2. If that is unavailable, email <inboxpraveen.17@gmail.com> with the subject "Security: Movie Recommendation System".
+Open the repository's **Security** tab and choose **Report a vulnerability**. This creates a private advisory visible only to the maintainer.
 
 Include what you found, the steps to reproduce it, and the version or commit you tested. You can expect an acknowledgement within a week. Once a fix is released, the report can be disclosed publicly with credit if you want it.
 
