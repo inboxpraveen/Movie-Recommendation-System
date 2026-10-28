@@ -21,7 +21,7 @@ python manage.py runserver
 ```
 
 Open <http://localhost:8000>. A 6,248-movie demo model ships in `demo_model/`
-and is picked up automatically, so search works immediately — you do **not**
+and is picked up automatically, so search works immediately, so you do **not**
 need a dataset or a training run to work on the app.
 
 Python 3.11 or newer is required (numpy 2.3 dropped 3.10).
@@ -46,21 +46,21 @@ ruff check .                           # lint (pip install ruff)
 It catches a whole class of bug the tests cannot: anything that breaks before
 Django finishes loading settings. This project shipped a release where a
 logging handler pointed at a directory that did not exist, and *every*
-`manage.py` command failed — while the test suite could not have caught it,
+`manage.py` command failed, while the test suite could not have caught it,
 because the tests never got to run. Please don't skip it.
 
 ---
 
 ## Working on the different pieces
 
-### The web app — `recommender/`
+### The web app: `recommender/`
 
 `views.py` holds everything: model loading, matching, and the four endpoints.
 There are no database models; the recommender is read-only once loaded.
 
 The model loads once per process in a background thread, and the UI polls
 `/api/model-status/` for progress. If you touch that machinery, exercise all
-four states — `loading`, `ready`, `missing`, `error` — not just the happy path.
+four states (`loading`, `ready`, `missing`, `error`), not just the happy path.
 
 Templates are `recommender/templates/recommender/`. CSS and JS are inline by
 design (no build step). Two rules to keep:
@@ -70,7 +70,7 @@ design (no build step). Two rules to keep:
   every render, which grew the page to megabytes.
 - **Never `innerHTML` with server data.** The autocomplete builds DOM nodes.
 
-### The model pipeline — `training/`
+### The model pipeline: `training/`
 
 Needs extra dependencies:
 
@@ -84,7 +84,7 @@ inference/CLI example. Run `python training/train.py --help` for the options.
 Two things worth knowing:
 
 - **Top-K neighbours, not a similarity matrix.** Storing the full N×N matrix
-  costs `n*n*4` bytes — about 10 GB at 50,000 movies. The trainer stores the
+  costs `n*n*4` bytes, about 10 GB at 50,000 movies. The trainer stores the
   50 nearest neighbours per movie instead (~20 MB) and computes them in
   bounded-memory chunks. `--legacy-matrix` still writes the old format, and
   inference reads either.
@@ -114,7 +114,7 @@ needs no dataset. The training tests skip automatically when scikit-learn and
 nltk are not installed.
 
 Please add a test with a bug fix. The ones worth copying as examples are the
-regression tests for bugs that were invisible until real data arrived — genres
+regression tests for bugs that were invisible until real data arrived: genres
 being dropped by an `isinstance` check, and poster artwork rendering underneath
 its own placeholder.
 
@@ -132,7 +132,7 @@ conda activate movierec
 pip install -r requirements.txt
 ```
 
-The web app is unaffected — it imports scipy lazily — so only training breaks.
+The web app is unaffected (it imports scipy lazily), so only training breaks.
 
 **`ValueError: Missing staticfiles manifest entry`**: you are running with
 `DEBUG=False` without having run `python manage.py collectstatic`.

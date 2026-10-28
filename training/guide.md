@@ -1,4 +1,4 @@
-# TMDB Movie Recommendation System (930K+ Movies) - Complete Guide
+# Training Guide
 
 ## 🚀 Quickest start: the command line
 
@@ -7,7 +7,7 @@
 ```bash
 pip install -r requirements-train.txt
 
-# Default: top 50,000 movies by quality score, 50 neighbours each
+# Default: movies with 50+ votes (about 26,000 on the TMDB dataset), 50 neighbours each
 python training/train.py ./TMDB_movie_dataset_v11.csv -o models
 
 # Smaller and much faster
@@ -87,26 +87,28 @@ df = pd.read_csv('TMDB_movie_dataset_v11.csv')
 ```
 
 ### 2. **Scalability**
-| Metric | Original | TMDB Upgrade | Improvement |
-|--------|----------|--------------|-------------|
-| Max Movies | 10K | **930K+** | **93x more** |
-| Training Time | 5 min (10K) | 15 min (100K) | Optimized |
-| Memory Usage | 800MB (10K) | 350MB (100K) | **56% less** |
-| Storage Size | 320MB (10K) | 180MB (100K) | **44% less** |
-| Quality Filters | None | ✅ Multiple | Added |
+Measured on the TMDB v11 dataset (1.49 million rows):
+
+| Run | Movies in model | Training time | Peak memory | Model files |
+|-----|-----------------|---------------|-------------|-------------|
+| `-q high -m 10000` | 6,248 | 31 s | 2.5 GB | 3.8 MB |
+| default (`-q medium`) | 26,326 | about 1 min | 2.5 GB | 16.1 MB |
+| `-q low -m 100000` | 100,000 | 4.3 min | 3.9 GB | 61.5 MB |
+
+Quality filters (three vote tiers) are described below.
 
 ### 3. **Quality Filtering**
 
 **Three quality tiers:**
 ```python
 # Low Quality: 5+ votes (maximum dataset size)
-trainer.train(quality_threshold='low')      # ~930K movies
+trainer.train(quality_threshold='low')      # about 113,000 movies on the TMDB v11 dataset
 
 # Medium Quality: 50+ votes (recommended - balanced)
-trainer.train(quality_threshold='medium')   # ~200K movies
+trainer.train(quality_threshold='medium')   # about 26,000 movies
 
 # High Quality: 500+ votes (highest quality)
-trainer.train(quality_threshold='high')     # ~50K movies
+trainer.train(quality_threshold='high')     # about 6,000 movies
 ```
 
 ### 4. **Enhanced Features**
@@ -168,64 +170,38 @@ recommender.get_recommendations(
 
 ## 📊 Recommended Configurations
 
-### Configuration 1: Full Dataset (930K+ movies)
-**Requirements:** 16GB+ RAM. (No GPU is used -- training is CPU-bound scikit-learn work.)
-```python
-trainer = MovieRecommenderTrainer(
-    output_dir='./models_full',
-    use_dimensionality_reduction=True,
-    n_components=400  # Lower for stability
-)
+All three use CPU-only scikit-learn; no GPU is involved. Peak memory is mostly the
+658 MB CSV being read into pandas.
 
-df, sim = trainer.train(
-    path,
-    quality_threshold='low',  # 5+ votes
-    max_movies=None  # All movies
-)
+### Configuration 1: Default (recommended)
+```bash
+python training/train.py ./TMDB_movie_dataset_v11.csv -o models
 ```
-- Training time: ~45-60 min
-- Memory: ~4-6GB during training
-- Model size: ~800MB
-- Best for: Complete movie database
+- Movies in model: 26,326 (50+ votes)
+- Training time: about 1 minute
+- Peak memory: 2.5 GB
+- Model files: 16 MB
+- Best for: production deployment on a small host
 
-### Configuration 2: High Quality (100K movies) ⭐ RECOMMENDED
-**Requirements:** 8GB RAM
-```python
-trainer = MovieRecommenderTrainer(
-    output_dir='./models',
-    use_dimensionality_reduction=True,
-    n_components=500
-)
-
-df, sim = trainer.train(
-    path,
-    quality_threshold='medium',  # 50+ votes
-    max_movies=100000  # Top 100K
-)
+### Configuration 2: Large catalogue
+```bash
+python training/train.py ./TMDB_movie_dataset_v11.csv -o models_large -q low -m 100000
 ```
-- Training time: ~15 min
-- Memory: ~2GB during training
-- Model size: ~180MB
-- Best for: Production deployment
+- Movies in model: 100,000 (5+ votes, capped)
+- Training time: 4.3 minutes
+- Peak memory: 3.9 GB
+- Model files: 61.5 MB
+- Best for: a catalogue that includes lesser-known films
 
-### Configuration 3: Fast Training (10K movies)
-**Requirements:** 4GB RAM
-```python
-trainer = MovieRecommenderTrainer(
-    output_dir='./models_fast',
-    use_dimensionality_reduction=False
-)
-
-df, sim = trainer.train(
-    path,
-    quality_threshold='high',  # 500+ votes
-    max_movies=10000
-)
+### Configuration 3: Fast and small
+```bash
+python training/train.py ./TMDB_movie_dataset_v11.csv -o models_fast -q high -m 10000
 ```
-- Training time: ~2 min
-- Memory: ~500MB
-- Model size: ~40MB
-- Best for: Testing/development
+- Movies in model: 6,248 (500+ votes)
+- Training time: 31 seconds
+- Peak memory: 2.5 GB
+- Model files: 3.8 MB
+- Best for: testing, development, and the committed `demo_model/`
 
 ## 🎯 Complete Usage Example
 
@@ -249,16 +225,16 @@ trainer = MovieRecommenderTrainer(
     n_components=500
 )
 
-df, sim_matrix = trainer.train(
+df, neighbors = trainer.train(
     path,
     quality_threshold='medium',
-    max_movies=100000
+    max_movies=50000
 )
 ```
 
 ### Step 3: Load & Use Recommender
 ```python
-from movie_recommender_inference import MovieRecommender
+from training.infer import MovieRecommender
 
 # Load trained model
 recommender = MovieRecommender(model_dir='./models')
@@ -355,35 +331,28 @@ details = recommender.get_movie_details("Inception")
 
 ## 📈 Performance Metrics
 
-### Training Performance (100K movies, medium quality):
+### Inference (in-process, 300 random titles)
 ```
-Dataset Loading:        ~30 seconds
-Feature Engineering:    ~2 minutes
-TF-IDF Matrix Build:    ~3 minutes
-SVD Reduction:          ~5 minutes
-Similarity Computation: ~5 minutes
-Model Saving:           ~30 seconds
-─────────────────────────────────
-Total Training Time:    ~15 minutes
+                        6,248 films   26,326 films   100,000 films
+Load model:             40 ms         75 ms          210 ms
+Recommendation, median: 1.1 ms        1.1 ms         1.1 ms
+Recommendation, p95:    1.6 ms        1.3 ms         1.4 ms
 ```
+A recommendation is one read of a precomputed row, so it does not grow with the
+catalogue. Title autocomplete scans titles and does (p95 1.0 ms at 6,248 films,
+15.9 ms at 100,000).
 
-### Inference Performance:
+### Storage (100,000 films)
 ```
-Load Model:             ~3 seconds
-Single Recommendation:  ~0.05 seconds
-Filtered Search:        ~0.1 seconds
-Diverse Recommendations: ~0.2 seconds
-```
-
-### Storage Efficiency:
-```
-TF-IDF Vectorizer:      ~15 MB
-Similarity Matrix:      ~150 MB (100K movies)
-Metadata:               ~12 MB
-SVD Model:              ~5 MB
+neighbors_idx.npy:       20.0 MB
+neighbors_scores.npy:    20.0 MB
+movie_metadata.parquet:  18.5 MB
+title_to_idx.json:        2.9 MB
 ─────────────────────────────────
-Total Model Size:       ~182 MB
+Served at runtime:       61.5 MB
 ```
+`tfidf_vectorizer.pkl` and `svd_model.pkl` (about 81 MB more here) are written for
+retraining only and are never loaded when serving.
 
 ## 🐛 Troubleshooting
 
@@ -435,7 +404,7 @@ trainer.train(max_movies=200000)  # More data = better patterns
 ### 1. Build REST API
 ```python
 from fastapi import FastAPI
-from movie_recommender_inference import MovieRecommender
+from training.infer import MovieRecommender
 
 app = FastAPI()
 recommender = MovieRecommender('./models')
@@ -521,16 +490,12 @@ df = df[df['vote_count'] >= threshold]  # Filter by votes
 df = df.sort_values('quality_score', ascending=False)
 ```
 
-## ✨ Summary
+## Summary
 
-**You now have a production-ready recommendation system that:**
-- ✅ Handles **930K+ movies** (93x more than original)
-- ✅ Uses **single CSV** (no complex merging)
-- ✅ Provides **rich metadata** (posters, IMDB, plots)
-- ✅ Offers **quality filtering** (three tiers)
-- ✅ Supports **advanced filters** (year, rating, genre)
-- ✅ Is **memory efficient** (56% less memory)
-- ✅ Trains **faster** (optimized pipeline)
-- ✅ Gives **better recommendations** (TF-IDF + SVD + enhanced features)
-
-The system is production-ready and can scale to millions of movies! 🎉
+You now have a recommender that:
+- Reads a **single CSV** (no merging) of up to 1.49 million rows
+- Keeps films above a **vote threshold** (three tiers) and ranks them by a quality score
+- Builds a model of 6,000 to 100,000 films in **30 seconds to about 4 minutes**
+- Stores **top-50 neighbours** per film, so a 26,000 film model is 16 MB
+- Serves a recommendation in about **1 millisecond**
+- Provides **rich metadata** (posters, IMDb ids, plots) and year, rating and genre filters through `training/infer.py`

@@ -1,490 +1,256 @@
-# 🎬 Movie Recommendation System
+<div align="center">
 
-> A production-ready, AI-powered movie recommendation system built with Django and advanced machine learning. Scalable from thousands to millions of movies.
+<img src="./assets/images-for-readme/logo.svg" alt="Movie Recommendation System logo" width="120">
 
+# Movie Recommendation System
+
+**A content-based movie recommender you can run, train and deploy.**<br>
+TF-IDF, SVD and top-K cosine neighbours behind a Django app, with a training pipeline that scales from a few thousand films to the full TMDB catalogue.
+
+[![CI](https://github.com/inboxpraveen/Movie-Recommendation-System/actions/workflows/ci.yml/badge.svg)](https://github.com/inboxpraveen/Movie-Recommendation-System/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-6.0-green.svg)](https://djangoproject.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/Sponsor-inboxpraveen-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/inboxpraveen)
 
----
+</div>
 
-![Logo Image](./assets/images-for-readme/Logo.png)
+![Movie Recommendation System](./assets/images-for-readme/Header.png)
 
----
+## Contents
 
-## 📑 Table of Contents
+- [What it is](#what-it-is)
+- [Demo](#demo)
+- [How it works](#how-it-works)
+- [Quick start](#quick-start)
+- [Use it your way](#use-it-your-way)
+- [Model training](#model-training)
+- [API reference](#api-reference)
+- [Configuration](#configuration)
+- [Deployment](#deployment)
+- [Performance](#performance)
+- [Project structure](#project-structure)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [Sponsor](#sponsor)
+- [Data and attribution](#data-and-attribution)
+- [License](#license)
 
-- [Overview](#-overview)
-- [Screenshots](#-screenshots)
-- [Features](#-features)
-- [Quick Start](#-quick-start)
-- [Project Structure](#-project-structure)
-- [Usage](#-usage)
-- [Model Training](#-model-training)
-- [API Reference](#-api-reference)
-- [Configuration](#-configuration)
-- [Documentation](#-documentation)
-- [Contributing](#-contributing)
-- [License](#-license)
+## What it is
 
----
+Type a film you like, get fifteen that are close to it. Similarity comes from what the films are made of: genres, keywords, studios, countries, plot overview and tagline. There is no user history to collect, so it works from the first query.
 
-## 🎯 Overview
+The repository holds two things that work together:
 
-The Movie Recommendation System provides intelligent movie suggestions using **content-based filtering** with TF-IDF and SVD dimensionality reduction. It features a modern web interface, RESTful API, and supports datasets from 2K to 1M+ movies.
+- **A training pipeline** (`training/train.py`) that turns any TMDB-shaped CSV into a small, fast model directory.
+- **A Django app** that serves that model: search with autocomplete, ranked results, and a JSON API.
 
+A 6,248-movie demo model is committed in `demo_model/`, so a fresh clone or a fresh deploy works with no setup.
 
-![Header Image](./assets/images-for-readme/Header.png)
+**Why it is easy to run in production**
 
+- **Small models.** The trainer stores the 50 nearest neighbours per film, never an N x N matrix. At 50,000 films that is about 20 MB instead of 10 GB.
+- **No code execution when loading.** The app reads parquet, JSON and NumPy arrays. Nothing loaded at serving time is a pickle.
+- **Low memory.** Neighbour arrays are memory-mapped, so each request reads one row.
+- **Safe to deploy.** The app refuses to start with the development secret key when `DEBUG=False`, and `/api/health/` reports `starting` while a large model loads so platform health checks do not kill the deploy.
+- **Tested.** A test suite covers the views, the model loader and the training pipeline.
 
-### Why This Project?
+## Demo
 
-- ✅ **Production Ready** - Security hardened, optimized, well-documented
-- ✅ **Scalable Architecture** - Handles millions of movies efficiently
-- ✅ **Modern Tech Stack** - Django 6.0, Python 3.11+, advanced ML
-- ✅ **Easy to Use** - Simple installation, clear documentation
-- ✅ **Flexible** - Train on 10K or 1M+ movies from any TMDB-shaped CSV
+![Application demo](./assets/demo-video/Application-Demo.gif)
 
-### Key Technologies
+| Search | Results |
+|--------|---------|
+| ![Home page](./assets/images-for-readme/Homepage.png) | ![Results page](./assets/images-for-readme/Results.png) |
 
-- **Backend**: Django 6.0, Python 3.11+
-- **ML/Data**: scikit-learn, pandas, numpy, scipy
-- **Storage**: Parquet (efficient data format)
-- **Deployment**: Render, Heroku, Docker compatible
+## How it works
 
----
+![Architecture](./assets/images-for-readme/Architecture.png)
 
-## 📸 Screenshots & Demo
+**Training (offline)**
 
-### Demo Video
+1. Load a TMDB-shaped CSV.
+2. Keep released films above a vote threshold (`low` is 5 votes, `medium` is 50, `high` is 500), drop duplicate titles and rows with no usable text.
+3. Build one text field per film: genres (counted twice), stemmed keywords, the lead studio (counted twice) plus up to three studios, up to two countries, the first 50 words of the overview, and the tagline.
+4. Fit TF-IDF over one and two word grams, then reduce with truncated SVD to 500 dimensions.
+5. Compute cosine similarity in 1,024-row chunks and keep the top 50 neighbours per film.
 
-![Application Demo](./assets/demo-video/Application-Demo.gif)
+**Serving (online)**
 
-### Model Loading
+1. The model loads once per process in a background thread; the UI polls `/api/model-status/` for progress.
+2. A search is resolved to a title by exact match, then prefix, then substring, then fuzzy match.
+3. The film's row of precomputed neighbours is read from the memory-mapped arrays and rendered as cards.
 
-![Model Loading](./assets//images-for-readme/Loading.png)
+## Quick start
 
-### Home Page
-
-![Home Page](./assets/images-for-readme/Homepage.png)
-
-### Movie Search Recommendations
-
-![Movie Recommendations](./assets/images-for-readme/Results.png)
-
----
-
-## ✨ Features
-
-### User Features
-- 🔍 **Smart Search** - Real-time autocomplete with fuzzy matching
-- 🎬 **AI Recommendations** - Content-based filtering with 15+ suggestions
-- ⭐ **Rich Metadata** - Ratings, votes, genres, production companies
-- 🔗 **External Links** - Google Search and IMDb integration
-- 📱 **Responsive Design** - Works seamlessly on all devices
-- ⚡ **Fast Performance** - Sub-50ms recommendation generation
-
-### Technical Features
-- 🤖 **Advanced ML** - TF-IDF + SVD dimensionality reduction
-- 📊 **Scalable** - Handles 2K to 1M+ movies
-- 💾 **Efficient Storage** - Parquet format with compression
-- 🔧 **Configurable** - Easy model switching via `MODEL_DIR`
-- 📡 **REST API** - JSON endpoints for integration
-- 🔒 **Secure** - Production-ready security settings
-- 📝 **Logging** - Comprehensive error tracking
-- 🚀 **Deployment Ready** - `render.yaml`, `Procfile` and `Dockerfile` included
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Python 3.11 or higher (numpy 2.3+ requires it)
-- pip package manager
-- 8GB RAM (recommended for training)
-- Git
-
-### Installation
+Requires Python 3.11 or newer.
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/yourusername/movie-recommendation-system.git
-cd movie-recommendation-system
+git clone https://github.com/inboxpraveen/Movie-Recommendation-System.git
+cd Movie-Recommendation-System
 
-# 2. Create virtual environment
 python -m venv venv
-
-# 3. Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
-
-# 4. Install dependencies
+source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# 5. Run database migrations
 python manage.py migrate
-
-# 6. Start the development server
 python manage.py runserver
 ```
 
-### Access the Application
+Open <http://localhost:8000>. Search works immediately because `demo_model/` is found automatically.
 
-Open your browser and navigate to:
-```
-http://localhost:8000
-```
+Prefer conda?
 
-That's it — a 6,248-movie demo model ships in `demo_model/` and is found
-automatically, so search works immediately with no configuration. 🎉
-
-Want a bigger catalogue, or your own dataset? See
-[Model Training](#-model-training) — it is entirely optional.
-
----
-
-## 📁 Project Structure
-
-```
-movie-recommendation-system/
-│
-├── 📚 Documentation
-│   ├── README.md                  # This file - overview and quick start
-│   ├── PROJECT_GUIDE.md           # Complete technical guide
-│   └── CHANGELOG.md               # Version history and changes
-│
-├── ⚙️ Django Application
-│   ├── movie_recommendation/      # Django project settings
-│   │   ├── settings.py           # Configuration
-│   │   ├── urls.py               # URL routing
-│   │   └── wsgi.py               # WSGI entry point
-│   │
-│   ├── recommender/              # Main application
-│   │   ├── views.py              # Recommendation logic
-│   │   ├── urls.py               # App URLs
-│   │   └── templates/            # HTML templates
-│   │       └── recommender/
-│   │           ├── index.html    # Search page
-│   │           ├── result.html   # Results page
-│   │           └── error.html    # Error page
-│   │
-│   ├── manage.py                 # Django management script
-│   └── requirements.txt          # Python dependencies
-│
-├── 🎓 Model Training
-│   └── training/
-│       ├── train.py              # Training pipeline
-│       ├── infer.py              # Inference examples
-│       └── guide.md              # Training documentation
-│
-├── 🎯 Models (Created after training)
-│   ├── demo_model/               # Committed: 6,248 movies, ~3.8 MB
-│   │   ├── movie_metadata.parquet    # Movie information
-│   │   ├── neighbors_idx.npy         # Top-K neighbour indices
-│   │   ├── neighbors_scores.npy      # Top-K neighbour scores
-│   │   ├── title_to_idx.json         # Title mappings
-│   │   └── config.json               # Model configuration
-│   │
-│   └── models/                   # git-ignored; your own trained models
-│       └── ... same layout, plus *.pkl retraining artifacts
-│
-├── 📦 Static Files
-│   └── static/
-│       └── logo.ico                  # Application icon
-│
-├── 🚀 Deployment
-│   ├── Procfile                  # Heroku configuration
-│   ├── render.yaml               # Render configuration
-│   ├── Dockerfile                # Container image
-│   ├── .dockerignore             # Build context exclusions
-│   └── .gitignore                # Git ignore rules
-│
-└── ⚙️ Project config
-    ├── requirements.txt          # Runtime dependencies
-    ├── requirements-train.txt    # Extra dependencies for training
-    ├── .env.example              # Documented environment variables
-    └── .github/workflows/ci.yml  # Checks and tests on every push
-```
-
----
-
-## 💡 Usage
-
-### Web Interface
-
-1. **Search for a Movie**
-   - Go to `http://localhost:8000`
-   - Start typing a movie name in the search box
-   - Select from autocomplete suggestions or type the full name
-
-2. **View Recommendations**
-   - Click "Get Recommendations"
-   - Browse 15 similar movie suggestions
-   - Each card shows: rating, release date, genres, production company
-
-3. **Explore Movies**
-   - Click "Google" to search for the movie
-   - Click "IMDb" to view on IMDb (if available)
-
-### API Usage
-
-#### Search Movies (Autocomplete)
 ```bash
-GET /api/search/?q=matrix
-
-Response:
-{
-  "movies": ["The Matrix", "The Matrix Reloaded", "The Matrix Revolutions"],
-  "count": 3
-}
+conda create -n movierec python=3.12 numpy scipy pandas pyarrow
+conda activate movierec
+pip install -r requirements.txt
+python manage.py migrate && python manage.py runserver
 ```
 
-#### Health Check
-```bash
-GET /api/health/
+## Use it your way
 
-Response:
-{
-  "status": "healthy",
-  "movies_loaded": 100000,
-  "model_dir": "./models",
-  "model_loaded": true
-}
+**Run it as a product.** Deploy the app as is, or point `MODEL_DIR` at your own model. See [Deployment](#deployment).
+
+**Use it as a pipeline.** Train on your own catalogue and ship the output directory. Any CSV with TMDB-style columns works. See [Model training](#model-training).
+
+**Use the model from your own code.** The inference class works without Django and supports year, genre and rating filters:
+
+```python
+from training.infer import MovieRecommender
+
+rec = MovieRecommender("demo_model")
+result = rec.get_recommendations(
+    "The Dark Knight", n_recommendations=5, min_year=2010, min_rating=7.0
+)
+for movie in result["recommendations"]:
+    print(movie["title"], movie["rating"], movie["similarity_score"])
 ```
 
----
+**Use the JSON API.** Autocomplete and health endpoints are documented in the [API reference](#api-reference).
 
-## 🎓 Model Training
+## Model training
 
-### Training a Model
-
-**Training is optional.** The committed `demo_model/` (6,248 movies with 500+
-votes) covers most well-known films. Train your own for a larger catalogue, a
-different language, or your own dataset. Download the
-[TMDB Movies Dataset](https://www.kaggle.com/datasets/asaniczka/tmdb-movies-dataset-2023-930k-movies)
-(or any CSV with the same columns), then:
+Training is optional. The committed demo model covers 6,248 well-known films (500 or more votes). Train your own for a larger catalogue, another language or your own dataset. Download the [TMDB Movies Dataset](https://www.kaggle.com/datasets/asaniczka/tmdb-movies-dataset-2023-930k-movies) (or any CSV with the same columns), then:
 
 ```bash
 pip install -r requirements-train.txt
 
-# Top 50,000 movies by quality score, 50 neighbours each (~20 MB output)
+# Default: films with 50+ votes, up to 50,000 of them, 50 neighbours each.
+# On the TMDB dataset that is about 26,000 films and a 16 MB model.
 python training/train.py ./TMDB_movie_dataset_v11.csv -o models
 
-# Smaller and faster: only movies with 500+ votes
+# Smaller and faster: only films with 500+ votes (about 6,000 films, 4 MB)
 python training/train.py ./TMDB_movie_dataset_v11.csv -o models -q high -m 10000
 
 python training/train.py --help   # all options
 ```
 
-The trainer stores the top **K** most similar movies per title rather than a
-full N x N similarity matrix. At 50,000 movies that is roughly 20 MB instead
-of 10 GB, which is what makes the free tier of most hosts viable.
-
-### Training Options
-
-Want to train on more movies or your own dataset? See the [**Training Guide**](training/guide.md) for:
-
-- 📖 Complete training documentation
-- 🎯 Configuration options (10K to 1M+ movies)
-- ⚙️ Performance tuning guidelines
-- 📊 Dataset requirements
-- 🔧 Advanced features
-
-**Using the trainer from Python:**
+From Python:
 
 ```python
 from training.train import MovieRecommenderTrainer
 
-trainer = MovieRecommenderTrainer(
-    output_dir='./models',
-    use_dimensionality_reduction=True,
-    n_components=500,
-    top_k=50,            # neighbours stored per movie
-)
-
+trainer = MovieRecommenderTrainer(output_dir="./models", n_components=500, top_k=50)
 df, neighbors = trainer.train(
-    'path/to/your/dataset.csv',
-    quality_threshold='medium',  # low/medium/high
+    "path/to/your/dataset.csv",
+    quality_threshold="medium",   # low, medium or high
     max_movies=50000,
 )
 ```
 
-**For detailed training instructions**, see:
-- 📘 [Training Guide](training/guide.md) - Complete training documentation
-- 📘 [PROJECT_GUIDE.md](PROJECT_GUIDE.md#-model-training) - Training setup and configurations
+The [Training Guide](training/guide.md) covers dataset requirements, tuning and sizing in detail.
 
----
-
-## 📡 API Reference
-
-### Endpoints
+## API reference
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/` | GET | Home page with search interface |
-| `/` | POST | Submit movie search and get recommendations |
-| `/api/search/` | GET | Search movies (autocomplete) |
+| `/` | GET | Search page |
+| `/` | POST | Submit a title, render recommendations |
+| `/api/search/?q=` | GET | Autocomplete (two or more characters) |
 | `/api/model-status/` | GET | Model loading progress |
-| `/api/health/` | GET | Health check endpoint |
+| `/api/health/` | GET | Liveness and readiness probe |
 
-### Search Movies
+**Autocomplete**
 
-**Request:**
 ```http
-GET /api/search/?q=inception
+GET /api/search/?q=matrix
 ```
 
-**Response:**
 ```json
 {
-  "movies": ["Inception", "Inception: The Cobol Job"],
-  "count": 2
+  "movies": ["The Matrix", "The Animatrix", "The Matrix Reloaded", "The Matrix Revolutions", "The Matrix Resurrections"],
+  "count": 5
 }
 ```
 
-### Health Check
+**Health**
 
-**Request:**
 ```http
 GET /api/health/
 ```
 
-**Response:**
 ```json
-{
-  "status": "healthy",
-  "movies_loaded": 100000,
-  "model_dir": "./models",
-  "model_loaded": true
-}
+{"status": "healthy", "model_loaded": true, "movies_loaded": 6248, "model_dir": "demo_model"}
 ```
 
-For complete API documentation, see [PROJECT_GUIDE.md - API Reference](PROJECT_GUIDE.md#-api-reference)
+While a model is loading, `status` is `starting` with HTTP 200. If no model is found or loading fails, it is `unhealthy` with HTTP 503.
 
----
+**Model status**
 
-## ⚙️ Configuration
-
-### Environment Variables
-
-Create a `.env` file (optional for development):
-
-```env
-# Django Settings
-SECRET_KEY=your-secret-key-here
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-
-# Model Configuration
-MODEL_DIR=./models
-
-# Database (optional - defaults to SQLite)
-# DATABASE_URL=postgresql://user:password@localhost/dbname
-
-# Deployment
-# RENDER_EXTERNAL_HOSTNAME=your-app.onrender.com
+```json
+{"loaded": true, "progress": 100, "status": "ready"}
 ```
 
-### Using Different Models
+`status` is one of `loading`, `ready`, `missing` or `error`.
 
-To switch between models, set the `MODEL_DIR` environment variable:
+The full reference is in [PROJECT_GUIDE.md](PROJECT_GUIDE.md#-api-reference).
 
-```bash
-# Use your trained model (the default)
-export MODEL_DIR=models
+## Configuration
 
-# Use absolute path
-export MODEL_DIR=/path/to/your/models
-```
+Copy `.env.example` to `.env`. Every value has a safe development default.
 
-For detailed configuration options, see [PROJECT_GUIDE.md - Configuration](PROJECT_GUIDE.md#-configuration)
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `SECRET_KEY` | Django secret. **Required** when `DEBUG=False`. | development key |
+| `DEBUG` | Never `True` in production. | `True` |
+| `ALLOWED_HOSTS` | Comma-separated hostnames. **Required** in production. | localhost |
+| `CSRF_TRUSTED_ORIGINS` | Origins trusted for HTTPS form posts. | derived on Render |
+| `SECURE_SSL_REDIRECT` | Set `False` if nothing in front terminates TLS. | `True` |
+| `MODEL_DIR` | Directory holding a trained model. | `demo_model/` is found automatically |
+| `MODEL_URL` | Build-time download of a model archive (Render). | unset |
+| `RECOMMENDATION_COUNT` | Results per search. | `15` |
 
----
+The app checks `MODEL_DIR`, then `models/`, `demo_model/` and `static/`, and uses the first directory that holds a complete model.
 
-## 📚 Documentation
+## Deployment
 
-### Main Documentation
+Deployments work as is: the committed `demo_model/` is found automatically. The options below are only for shipping a larger model.
 
-- **[README.md](README.md)** (this file) - Overview, quick start, basic usage
-- **[PROJECT_GUIDE.md](PROJECT_GUIDE.md)** - Complete technical guide
-  - Installation
-  - Model training
-  - Configuration
-  - Development
-  - Deployment
-  - API reference
-  - Troubleshooting
-- **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
+### Shipping a bigger model
 
-### Training Documentation
-
-- **[training/guide.md](training/guide.md)** - Complete model training guide
-  - Dataset requirements
-  - Training configurations
-  - Performance tuning
-  - Advanced features
-
-### Quick Links
-
-| Topic | Documentation |
-|-------|---------------|
-| Installation | [Quick Start](#-quick-start) or [PROJECT_GUIDE.md](PROJECT_GUIDE.md#-installation) |
-| Model Training | [training/guide.md](training/guide.md) |
-| Deployment | [PROJECT_GUIDE.md - Deployment](PROJECT_GUIDE.md#-deployment) |
-| API Reference | [API Reference](#-api-reference) or [PROJECT_GUIDE.md](PROJECT_GUIDE.md#-api-reference) |
-| Troubleshooting | [PROJECT_GUIDE.md - Troubleshooting](PROJECT_GUIDE.md#-troubleshooting) |
-| Configuration | [Configuration](#-configuration) or [PROJECT_GUIDE.md](PROJECT_GUIDE.md#-configuration) |
-
----
-
-## 🚀 Deployment
-
-> **Deployments work as-is.** The committed `demo_model/` is found
-> automatically, so a deploy from a fresh clone serves recommendations without
-> any model configuration. The options below are only for shipping a *larger*
-> model than the demo.
-
-### Shipping a bigger model (optional)
-
-**Option A — replace the demo model (simplest).**
-Train into `demo_model/` (or any directory that is not git-ignored) and commit:
+**Option A, replace the demo model.** Train into `demo_model/` and commit it:
 
 ```bash
 pip install -r requirements-train.txt
 python training/train.py ./TMDB_movie_dataset_v11.csv -o demo_model -q high -m 10000
-git add demo_model && git commit -m "Add demo model"
+git add demo_model && git commit -m "Update demo model"
 ```
 
-That is all — `demo_model/` is one of the locations checked automatically, so
-you can leave `MODEL_DIR` unset (or set it explicitly if you prefer).
+`models/` is git-ignored so full-size models never enter history, and `*.pkl` is ignored repository-wide, so the retraining artifacts (an SVD pickle can be ten times the rest of the model) are skipped automatically.
 
-Two things keep this small: `models/` is git-ignored on purpose so full-size
-models never enter history, while `demo_model/` is not; and `*.pkl` is ignored
-repository-wide, so the retraining artifacts (an SVD pickle is easily 10× the
-rest of the model combined) are skipped by `git add` automatically. Nothing
-loaded at serving time is a pickle.
-
-**Option B — fetch it at build time (keeps the repo small).**
-Train a model, package it, and upload `model.tar.gz` as a GitHub Release asset:
+**Option B, fetch at build time.** Package a model and upload it as a GitHub Release asset:
 
 ```bash
 python training/train.py ./TMDB_movie_dataset_v11.csv -o models
-tar czf model.tar.gz -C models --exclude='*.pkl' .   # paths relative; no pickles
+tar czf model.tar.gz -C models --exclude='*.pkl' .
 ```
 
-Set `MODEL_URL` to the asset URL. `render.yaml`'s build step downloads and
-unpacks it into `MODEL_DIR`. This is build-time only — the app never fetches
-anything at runtime.
+Set `MODEL_URL` to the asset URL. `render.yaml` downloads and unpacks it at build time. The app never fetches anything at runtime.
 
 ### Render
 
-1. Push to GitHub and connect the repository to [Render](https://render.com)
-2. Render picks up `render.yaml` automatically
-3. Set `ALLOWED_HOSTS` (your custom domain, if any) and `MODEL_URL` (option B)
-4. Deploy. `SECRET_KEY` is generated for you.
+Connect the repository; Render reads `render.yaml`. Set `ALLOWED_HOSTS` for a custom domain and `MODEL_URL` for option B. `SECRET_KEY` is generated for you, and `/api/health/` is the health check.
 
 ### Heroku
 
@@ -504,142 +270,97 @@ The image bakes in whatever is in `MODEL_DIR` at build time, so train first:
 ```bash
 python training/train.py ./TMDB_movie_dataset_v11.csv -o models
 docker build -t movie-recommender .
-export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(50))')"
 docker run --rm -p 8000:8000 \
-  -e SECRET_KEY="$SECRET_KEY" \
+  -e SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(50))')" \
   -e ALLOWED_HOSTS=localhost,127.0.0.1 \
   -e SECURE_SSL_REDIRECT=False \
   movie-recommender
 ```
 
-`SECURE_SSL_REDIRECT=False` is required when nothing is terminating TLS in
-front of the container; otherwise every request is redirected to `https://`
-and loops.
+`SECURE_SSL_REDIRECT=False` is needed when nothing terminates TLS in front of the container; otherwise every request redirects to `https://` and loops.
 
-### Deployment checklist
+All three targets run one gunicorn worker with four threads. The model is held per process, so extra workers would multiply memory use; threads provide the concurrency.
 
-- [ ] `SECRET_KEY` set (the app refuses to start with the dev key when `DEBUG=False`)
-- [ ] `DEBUG=False`
-- [ ] `ALLOWED_HOSTS` includes your domain
-- [ ] A model is reachable — `curl https://your-app/api/health/` returns `"status": "healthy"`
+### Checklist
 
-For more detail, see [PROJECT_GUIDE.md - Deployment](PROJECT_GUIDE.md#-deployment)
+- `SECRET_KEY` is set (the app refuses to start with the development key when `DEBUG=False`)
+- `DEBUG=False`
+- `ALLOWED_HOSTS` includes your domain
+- `curl https://your-app/api/health/` returns `"status": "healthy"`
 
----
+More detail is in [PROJECT_GUIDE.md](PROJECT_GUIDE.md#-deployment).
 
-## 🤝 Contributing
+## Performance
 
-Contributions are welcome. See **[CONTRIBUTING.md](CONTRIBUTING.md)** for setup,
-the layout of the code, and the handful of non-obvious things worth knowing
-before changing the model pipeline.
+Measured on a developer machine against the TMDB v11 dataset (1.49 million rows), using 300 random titles per model:
 
-The short version:
+| | Demo model (6,248 films) | Default training (26,326 films) | Large (100,000 films) |
+|---|---|---|---|
+| Recommendations per query, median / p95 | 1.1 ms / 1.6 ms | 1.1 ms / 1.3 ms | 1.1 ms / 1.4 ms |
+| Autocomplete, median / p95 | 0.9 ms / 1.0 ms | 1.0 ms / 4.4 ms | 1.1 ms / 15.9 ms |
+| Model load | 40 ms | 75 ms | 210 ms |
+| Model files served | 3.8 MB | 16.1 MB | 61.5 MB |
+| Training time | 31 s | about 1 min | 4.3 min |
+| Training peak memory | 2.5 GB | 2.5 GB | 3.9 GB |
+
+The columns come from `-q high -m 10000`, the default `-q medium`, and `-q low -m 100000`. Query times are measured inside the recommender, so they exclude HTTP and template rendering. Recommendation time stays flat because a search reads one precomputed row; only autocomplete, which scans titles, grows with the catalogue. The 2.5 GB floor is mostly reading the 658 MB CSV, not building the model.
+
+## Project structure
+
+```
+Movie-Recommendation-System/
+├── movie_recommendation/    Django project (settings, urls, wsgi)
+├── recommender/             The app: views, templates, tests
+├── training/                Pipeline: train.py, infer.py, guide.md, tests
+├── demo_model/              Committed demo model (6,248 films, 3.8 MB)
+├── assets/                  Logo, header, architecture diagram, screenshots
+├── static/                  Application icon
+├── Dockerfile  Procfile  render.yaml
+├── requirements.txt         Serving dependencies
+├── requirements-train.txt   Extra dependencies for training
+├── .env.example             Documented environment variables
+├── PROJECT_GUIDE.md  CONTRIBUTING.md  CHANGELOG.md
+└── .github/workflows/ci.yml Lint, system checks and tests on every push
+```
+
+## Documentation
+
+| Topic | Where |
+|-------|-------|
+| Installation, configuration, troubleshooting | [PROJECT_GUIDE.md](PROJECT_GUIDE.md) |
+| Training, tuning, dataset requirements | [training/guide.md](training/guide.md) |
+| Development setup and code layout | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| Release history | [CHANGELOG.md](CHANGELOG.md) |
+| Security reports | [SECURITY.md](SECURITY.md) |
+
+## Contributing
+
+Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers setup, the layout of the code, and the non-obvious things worth knowing before changing the model pipeline. Before opening a pull request, run the same three checks CI runs:
 
 ```bash
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver        # a demo model ships, so this just works
-
-# before opening a PR -- CI runs the same three
 python manage.py check
 python manage.py test
 ruff check .
 ```
 
-Style is configured in `pyproject.toml`; `ruff check . --fix` handles the
-mechanical parts. Please add a test with a bug fix and note the change under
-`[Unreleased]` in `CHANGELOG.md`.
+Please add a test with a bug fix and note the change under `[Unreleased]` in `CHANGELOG.md`. Questions and bug reports go to [Issues](https://github.com/inboxpraveen/Movie-Recommendation-System/issues).
 
----
+## Sponsor
 
-## 🎞️ Data & attribution
+This project is maintained by one person. If it saves you time, or you run it somewhere that matters to you, [sponsoring](https://github.com/sponsors/inboxpraveen) helps keep dependencies current, the demo model fresh, and issues answered. Starring the repository and sharing it helps as well.
+
+## Data and attribution
 
 Movie metadata and poster images come from [TMDB](https://www.themoviedb.org/).
 
 > This product uses data from TMDB but is not endorsed or certified by TMDB.
 
-- The committed `demo_model/` is derived from the
-  [TMDB Movies Dataset](https://www.kaggle.com/datasets/asaniczka/tmdb-movies-dataset-2023-930k-movies)
-  and contains titles, overviews, ratings and poster paths originating from TMDB.
-- Poster images are loaded directly from `image.tmdb.org` at render time; none
-  are redistributed in this repository.
-- If you extend this project to call the TMDB API directly, their terms require
-  the wording *"This product uses the TMDB API but is not endorsed or certified
-  by TMDB"* together with the TMDB logo. See
-  [TMDB's terms of use](https://www.themoviedb.org/api-terms-of-use).
+- The committed `demo_model/` is derived from the [TMDB Movies Dataset](https://www.kaggle.com/datasets/asaniczka/tmdb-movies-dataset-2023-930k-movies) and contains titles, overviews, ratings and poster paths that originate from TMDB.
+- Poster images load directly from `image.tmdb.org` at render time. None are redistributed in this repository, and the screenshots above are taken with posters turned off for that reason.
+- If you extend this project to call the TMDB API directly, their terms require the wording "This product uses the TMDB API but is not endorsed or certified by TMDB" together with the TMDB logo. See [TMDB's terms of use](https://www.themoviedb.org/api-terms-of-use).
 
-The MIT licence below covers this project's own source code, not the movie data.
+The MIT licence covers this project's own source code, not the movie data.
 
----
+## License
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🆘 Support
-
-Need help? Here are your options:
-
-- 📖 **Documentation**: Check [PROJECT_GUIDE.md](PROJECT_GUIDE.md) for detailed guides
-- 🎓 **Training Help**: See [training/guide.md](training/guide.md) for model training
-- 🐛 **Issues**: [Open an issue](https://github.com/yourusername/movie-recommendation-system/issues) on GitHub
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/yourusername/movie-recommendation-system/discussions)
-
----
-
-## 🎯 Roadmap
-
-### Version 2.1 (Planned)
-- [ ] User authentication system
-- [ ] Personal watchlists
-- [ ] Movie rating system
-- [ ] Advanced filtering (multiple genres, year ranges)
-- [ ] Recommendation history
-
-### Version 2.2 (Planned)
-- [ ] Collaborative filtering
-- [ ] Social features (sharing, comments)
-- [ ] Movie reviews
-- [ ] Advanced analytics dashboard
-
-### Version 3.0 (Long-term)
-- [ ] Mobile applications (iOS/Android)
-- [ ] Real-time recommendations
-- [ ] Streaming service integration
-- [ ] Enhanced ML models (hybrid recommendations)
-
----
-
-## 📊 Performance
-
-| Metric | Value |
-|--------|-------|
-| Recommendation Time | < 50ms |
-| Search Response | < 100ms |
-| Page Load | < 200ms |
-| Memory Usage | ~200MB (100K movies) |
-| Concurrent Users | 1000+ |
-| Model Size | 180MB (100K movies) |
-
----
-
-## 🙏 Acknowledgments
-
-- Movie data from TMDB and IMDb
-- Built with Django, scikit-learn, pandas
-- UI inspired by modern design principles
-- Community contributions and feedback
-
----
-
-<div align="center">
-
-**Made with ❤️ for movie lovers and developers**
-
-[⭐ Star this repo](https://github.com/yourusername/movie-recommendation-system) •
-[🐛 Report Bug](https://github.com/yourusername/movie-recommendation-system/issues) •
-[💡 Request Feature](https://github.com/yourusername/movie-recommendation-system/issues)
-
-</div>
+MIT. See [LICENSE](LICENSE).
