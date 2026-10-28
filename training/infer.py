@@ -92,11 +92,11 @@ class MovieRecommender:
             )
 
         # Load title mapping
-        with open(self.model_dir / 'title_to_idx.json') as f:
+        with open(self.model_dir / 'title_to_idx.json', encoding='utf-8') as f:
             self.title_to_idx = json.load(f)
 
         # Load config
-        with open(self.model_dir / 'config.json') as f:
+        with open(self.model_dir / 'config.json', encoding='utf-8') as f:
             self.config = json.load(f)
 
         print(f"✅ Loaded {self.config['n_movies']:,} movies from {self.config.get('dataset', 'dataset')}")

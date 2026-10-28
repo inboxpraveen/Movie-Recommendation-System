@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="Movie Recommendation System: TF-IDF, SVD and cosine neighbours with a Django app">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.82" cy="0.5" r="0.6">
+      <stop offset="0" stop-color="#7c3aed" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <pattern id="dots" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#ffffff" fill-opacity="0.07"/>
+    </pattern>
+  </defs>
+  <style>
+    text { font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  </style>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect width="1280" height="640" fill="url(#dots)"/>
+  <rect width="1280" height="640" fill="url(#glow)"/>
+
+  <!-- Large mark on the right -->
+  <g transform="translate(838 160) scale(1.5)">
+    <rect width="256" height="256" rx="56" fill="url(#mark)"/>
+    <g stroke="#ffffff" stroke-opacity="0.65" stroke-width="7" stroke-linecap="round">
+      <line x1="140" y1="128" x2="196" y2="70"/>
+      <line x1="140" y1="128" x2="208" y2="128"/>
+      <line x1="140" y1="128" x2="196" y2="186"/>
+    </g>
+    <path d="M72 80 L72 176 L146 128 Z" fill="#ffffff" stroke="#ffffff" stroke-width="12" stroke-linejoin="round"/>
+    <circle cx="196" cy="70" r="15" fill="#e0e7ff"/>
+    <circle cx="208" cy="128" r="17" fill="#fbbf24"/>
+    <circle cx="196" cy="186" r="15" fill="#e0e7ff"/>
+  </g>
+
+  <text x="80" y="232" font-size="68" font-weight="700" fill="#ffffff">Movie</text>
+  <text x="80" y="312" font-size="68" font-weight="700" fill="#ffffff">Recommendation</text>
+  <text x="80" y="392" font-size="68" font-weight="700" fill="#a5b4fc">System</text>
+  <text x="80" y="452" font-size="29" fill="#c7d2fe">TF-IDF, SVD and cosine neighbours.</text>
+  <text x="80" y="492" font-size="29" fill="#c7d2fe">A Django app and a training pipeline.</text>
+
+  <g font-size="22" font-weight="600" fill="#e2e8f0">
+    <rect x="80" y="530" width="120" height="44" rx="22" fill="#ffffff" fill-opacity="0.1"/>
+    <text x="140" y="560" text-anchor="middle">Python</text>
+    <rect x="212" y="530" width="120" height="44" rx="22" fill="#ffffff" fill-opacity="0.1"/>
+    <text x="272" y="560" text-anchor="middle">Django</text>
+    <rect x="344" y="530" width="176" height="44" rx="22" fill="#ffffff" fill-opacity="0.1"/>
+    <text x="432" y="560" text-anchor="middle">scikit-learn</text>
+    <rect x="532" y="530" width="100" height="44" rx="22" fill="#ffffff" fill-opacity="0.1"/>
+    <text x="582" y="560" text-anchor="middle">MIT</text>
+  </g>
+</svg>

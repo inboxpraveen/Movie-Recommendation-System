@@ -372,3 +372,16 @@ class MissingModelTests(SimpleTestCase):
         threads = [t for t in __import__('threading').enumerate()
                    if t.name == 'model-loader' and t.is_alive()]
         self.assertLessEqual(len(threads), 1)
+
+
+class GenreLabelTests(SimpleTestCase):
+    """The trainer stores genres as lowercase, space-free tokens."""
+
+    def test_trainer_tokens_are_made_readable(self):
+        self.assertEqual(views._genre_label('sciencefiction'), 'Science Fiction')
+        self.assertEqual(views._genre_label('tvmovie'), 'TV Movie')
+        self.assertEqual(views._genre_label('animation'), 'Animation')
+
+    def test_already_cased_genres_are_left_alone(self):
+        self.assertEqual(views._genre_label('Science Fiction'), 'Science Fiction')
+        self.assertEqual(views._genre_label('TV Movie'), 'TV Movie')

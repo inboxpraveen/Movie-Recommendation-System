@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1100" width="1800" height="1100" role="img" aria-label="Architecture: an offline training pipeline writes a model directory that the Django app loads and serves">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#171347"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#fbbf24"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #e2e8f0; }
+    .h1 { font-size: 36px; font-weight: 700; fill: #ffffff; }
+    .sub { font-size: 21px; fill: #a5b4fc; }
+    .lane { font-size: 18px; font-weight: 700; letter-spacing: 2px; }
+    .t { font-size: 25px; font-weight: 700; fill: #ffffff; }
+    .b { font-size: 20px; fill: #cbd5e1; }
+    .mono { font-family: Consolas, "Cascadia Mono", "Courier New", monospace; font-size: 19px; fill: #fde68a; }
+    .note { font-size: 19px; fill: #94a3b8; }
+    .tag { font-size: 18px; fill: #fbbf24; font-weight: 600; }
+  </style>
+  <rect width="1800" height="1100" fill="url(#bg)"/>
+
+  <text class="h1" x="70" y="62">Architecture</text>
+  <text class="sub" x="70" y="96">Train offline, then serve recommendations from memory-mapped files</text>
+  <rect x="40" y="120" width="1720" height="285" rx="22" fill="#6366f1" fill-opacity="0.07" stroke="#6366f1" stroke-opacity="0.55" stroke-width="2"/>
+  <text class="lane" x="70" y="158" style="fill:#a5b4fc">OFFLINE  /  training/train.py</text>
+  <rect x="70" y="182" width="287" height="196" rx="16" fill="#111633" stroke="#6366f1" stroke-width="2"/>
+  <text class="t" x="92" y="224">1  Load</text>
+  <text class="b" x="92" y="260">TMDB-shaped CSV with</text>
+  <text class="b" x="92" y="288">genres, keywords, studios,</text>
+  <text class="b" x="92" y="316">overview and tagline</text>
+  <line x1="363" y1="280" x2="407" y2="280" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="413" y="182" width="287" height="196" rx="16" fill="#111633" stroke="#6366f1" stroke-width="2"/>
+  <text class="t" x="435" y="224">2  Filter</text>
+  <text class="b" x="435" y="260">Released films only</text>
+  <text class="b" x="435" y="288">Votes of 5, 50 or 500+</text>
+  <text class="b" x="435" y="316">(low, medium, high)</text>
+  <text class="b" x="435" y="344">No duplicate titles</text>
+  <line x1="706" y1="280" x2="750" y2="280" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="756" y="182" width="287" height="196" rx="16" fill="#111633" stroke="#6366f1" stroke-width="2"/>
+  <text class="t" x="778" y="224">3  Features</text>
+  <text class="b" x="778" y="260">One text field per film:</text>
+  <text class="b" x="778" y="288">genres twice, stemmed</text>
+  <text class="b" x="778" y="316">keywords, studios,</text>
+  <text class="b" x="778" y="344">countries, plot, tagline</text>
+  <line x1="1049" y1="280" x2="1093" y2="280" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="1099" y="182" width="287" height="196" rx="16" fill="#111633" stroke="#6366f1" stroke-width="2"/>
+  <text class="t" x="1121" y="224">4  Vectorise</text>
+  <text class="b" x="1121" y="260">TF-IDF over 1-2 word</text>
+  <text class="b" x="1121" y="288">grams, 10K to 20K terms</text>
+  <text class="b" x="1121" y="316">then SVD down to</text>
+  <text class="b" x="1121" y="344">500 dimensions</text>
+  <line x1="1392" y1="280" x2="1436" y2="280" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="1442" y="182" width="287" height="196" rx="16" fill="#111633" stroke="#6366f1" stroke-width="2"/>
+  <text class="t" x="1464" y="224">5  Neighbours</text>
+  <text class="b" x="1464" y="260">Cosine similarity in</text>
+  <text class="b" x="1464" y="288">1,024-row chunks</text>
+  <text class="b" x="1464" y="316">Keep the top 50 per film</text>
+  <text class="b" x="1464" y="344">(no N x N matrix)</text>
+  <rect x="40" y="450" width="1720" height="190" rx="22" fill="#fbbf24" fill-opacity="0.06" stroke="#fbbf24" stroke-opacity="0.6" stroke-width="2"/>
+  <text class="lane" x="70" y="488" style="fill:#fbbf24">MODEL DIRECTORY  /  demo_model/ is committed, MODEL_DIR is yours</text>
+  <rect x="70" y="512" width="316" height="68" rx="12" fill="#111633" stroke="#fbbf24" stroke-opacity="0.7" stroke-width="2"/>
+  <text class="mono" x="86" y="540">movie_metadata.parquet</text>
+  <text class="note" x="86" y="566" style="font-size:17px">title, year, genres, rating, poster</text>
+  <rect x="406" y="512" width="316" height="68" rx="12" fill="#111633" stroke="#fbbf24" stroke-opacity="0.7" stroke-width="2"/>
+  <text class="mono" x="422" y="540">neighbors_idx.npy</text>
+  <text class="note" x="422" y="566" style="font-size:17px">50 neighbour ids per film</text>
+  <rect x="742" y="512" width="316" height="68" rx="12" fill="#111633" stroke="#fbbf24" stroke-opacity="0.7" stroke-width="2"/>
+  <text class="mono" x="758" y="540">neighbors_scores.npy</text>
+  <text class="note" x="758" y="566" style="font-size:17px">their cosine scores</text>
+  <rect x="1078" y="512" width="316" height="68" rx="12" fill="#111633" stroke="#fbbf24" stroke-opacity="0.7" stroke-width="2"/>
+  <text class="mono" x="1094" y="540">title_to_idx.json</text>
+  <text class="note" x="1094" y="566" style="font-size:17px">title to row lookup</text>
+  <rect x="1414" y="512" width="316" height="68" rx="12" fill="#111633" stroke="#fbbf24" stroke-opacity="0.7" stroke-width="2"/>
+  <text class="mono" x="1430" y="540">config.json</text>
+  <text class="note" x="1430" y="566" style="font-size:17px">movie count, top_k, SVD size</text>
+  <text class="note" x="70" y="624">Also written for retraining only (git-ignored, never loaded when serving): tfidf_vectorizer.pkl, svd_model.pkl</text>
+  <line x1="1585" y1="386" x2="1585" y2="446" stroke="#fbbf24" stroke-width="3" marker-end="url(#arrow-amber)"/>
+  <text class="tag" x="1600" y="408">writes</text>
+  <rect x="40" y="690" width="1720" height="320" rx="22" fill="#2dd4bf" fill-opacity="0.06" stroke="#2dd4bf" stroke-opacity="0.55" stroke-width="2"/>
+  <text class="lane" x="70" y="728" style="fill:#5eead4">ONLINE  /  Django app</text>
+  <rect x="70" y="752" width="373" height="226" rx="16" fill="#111633" stroke="#2dd4bf" stroke-width="2"/>
+  <text class="t" x="92" y="794">Browser</text>
+  <text class="b" x="92" y="830">Search box with</text>
+  <text class="b" x="92" y="858">autocomplete from</text>
+  <text class="b" x="92" y="886">/api/search/</text>
+  <text class="b" x="92" y="914">Progress bar while</text>
+  <text class="b" x="92" y="942">the model loads</text>
+  <line x1="449" y1="865" x2="493" y2="865" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="499" y="752" width="373" height="226" rx="16" fill="#111633" stroke="#2dd4bf" stroke-width="2"/>
+  <text class="t" x="521" y="794">Django views</text>
+  <text class="b" x="521" y="830">GET and POST /</text>
+  <text class="b" x="521" y="858">GET /api/search/</text>
+  <text class="b" x="521" y="886">GET /api/model-status/</text>
+  <text class="b" x="521" y="914">GET /api/health/</text>
+  <text class="b" x="521" y="942">WhiteNoise for static files</text>
+  <line x1="878" y1="865" x2="922" y2="865" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="928" y="752" width="373" height="226" rx="16" fill="#111633" stroke="#2dd4bf" stroke-width="2"/>
+  <text class="t" x="950" y="794">MovieRecommender</text>
+  <text class="b" x="950" y="830">Loaded once per process</text>
+  <text class="b" x="950" y="858">in a background thread</text>
+  <text class="b" x="950" y="886">Arrays read with mmap</text>
+  <text class="b" x="950" y="914">Title match: exact, prefix,</text>
+  <text class="b" x="950" y="942">substring, then fuzzy</text>
+  <line x1="1307" y1="865" x2="1351" y2="865" stroke="#94a3b8" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="1357" y="752" width="373" height="226" rx="16" fill="#111633" stroke="#2dd4bf" stroke-width="2"/>
+  <text class="t" x="1379" y="794">Response</text>
+  <text class="b" x="1379" y="830">15 cards per search:</text>
+  <text class="b" x="1379" y="858">rating, genres, similarity,</text>
+  <text class="b" x="1379" y="886">TMDB poster, Google and</text>
+  <text class="b" x="1379" y="914">IMDb links. The API</text>
+  <text class="b" x="1379" y="942">endpoints return JSON</text>
+  <line x1="1114" y1="644" x2="1114" y2="748" stroke="#fbbf24" stroke-width="3" marker-end="url(#arrow-amber)"/>
+  <text class="tag" x="1128" y="674">read-only</text>
+  <text class="note" x="70" y="1062">Runs on gunicorn (1 worker, 4 threads) and WhiteNoise: Render, Heroku or Docker. The committed demo model means a fresh clone works with no setup.</text>
+</svg>

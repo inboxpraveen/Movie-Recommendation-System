@@ -44,6 +44,6 @@ The project's MIT licence covers its source code, not this movie data.
 
 ## Replacing it
 
-Train a larger or different model into this directory and commit the result —
+Train a larger or different model into this directory and commit the result,
 or keep yours in git-ignored `models/` and set `MODEL_DIR=models`. See
 [training/guide.md](../training/guide.md).

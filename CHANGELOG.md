@@ -56,6 +56,15 @@ This project follows [Semantic Versioning](https://semver.org/) and the changelo
   positioned and positioned elements paint above static ones regardless of DOM
   order, so the layers needed explicit z-index values. Only visible once real
   poster images load.
+- `training/infer.py` read `title_to_idx.json` and `config.json` with the
+  platform default encoding, so loading any model with non-ASCII titles failed
+  with `UnicodeDecodeError` on Windows. Both files are now read as UTF-8, which
+  is how the trainer writes them.
+- The home page said recommendations match on "cast". The model uses genres,
+  keywords, studios, countries and plot text; the wording now says so.
+- Genres appeared as the trainer's internal tokens (`sciencefiction`, `tvmovie`,
+  everything lowercase). The views now turn them into display names such as
+  "Science Fiction", so existing models need no retraining.
 
 ### Changed
 - The catalogue is no longer inlined into every page render. Autocomplete uses
@@ -88,8 +97,26 @@ This project follows [Semantic Versioning](https://semver.org/) and the changelo
   1,200-movie model is 17.2 MB packaged, or 299 KB without them. `demo_model/`
   is also searched automatically, so committing a small model needs no
   configuration at all.
+- README rewritten around what the project does today: real clone and issue
+  URLs in place of `yourusername` placeholders, a "use it your way" section for
+  the app, the pipeline and the library, API examples taken from a running
+  instance, and performance figures that were measured rather than estimated.
+  `PROJECT_GUIDE.md` and `training/guide.md` lost the same stale numbers and the
+  full-matrix descriptions.
+- Logo, header banner and architecture diagram replaced. The old images showed
+  the previous design (a full `similarity_matrix.npz`, "Django/Flask",
+  Python 3.10). The new ones are hand-written SVG with PNG renders in
+  `assets/images-for-readme/`, and the
+  architecture diagram matches the code. Screenshots and the demo GIF were
+  retaken from the current UI with posters turned off, so no TMDB artwork is
+  redistributed. The GIF dropped from 8 MB to under 0.5 MB; the stale MP4 and
+  loading-screen screenshot were removed.
 
 ### Added
+- `LICENSE` now names the author as copyright holder instead of the project.
+- `SECURITY.md`: private vulnerability reporting and deployment notes.
+- `assets/images-for-readme/social-preview.png` (1280x640) for the repository's
+  social card.
 - A test suite (37 tests) covering model loading, matching, filtering, link
   encoding, the API endpoints, and the missing-model and error states.
 - Posters on result cards, with a graceful fallback when artwork is missing.
@@ -509,8 +536,7 @@ For detailed information about features and usage:
 
 ### Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/movie-recommendation-system/issues)
-- **Questions**: [GitHub Discussions](https://github.com/yourusername/movie-recommendation-system/discussions)
+- **Issues**: [GitHub Issues](https://github.com/inboxpraveen/Movie-Recommendation-System/issues)
 
 ---
 

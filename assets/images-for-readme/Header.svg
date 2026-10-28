@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 500" width="1600" height="500" role="img" aria-label="Movie Recommendation System: search a title, get similar movies ranked by cosine similarity">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.78" cy="0.45" r="0.55">
+      <stop offset="0" stop-color="#7c3aed" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+    <pattern id="dots" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#ffffff" fill-opacity="0.07"/>
+    </pattern>
+  </defs>
+  <style>
+    text { font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  </style>
+
+  <rect width="1600" height="500" fill="url(#bg)"/>
+  <rect width="1600" height="500" fill="url(#dots)"/>
+  <rect width="1600" height="500" fill="url(#glow)"/>
+
+  <!-- Mark -->
+  <g transform="translate(88 78) scale(0.34)">
+    <rect width="256" height="256" rx="56" fill="url(#mark)"/>
+    <g stroke="#ffffff" stroke-opacity="0.65" stroke-width="7" stroke-linecap="round">
+      <line x1="140" y1="128" x2="196" y2="70"/>
+      <line x1="140" y1="128" x2="208" y2="128"/>
+      <line x1="140" y1="128" x2="196" y2="186"/>
+    </g>
+    <path d="M72 80 L72 176 L146 128 Z" fill="#ffffff" stroke="#ffffff" stroke-width="12" stroke-linejoin="round"/>
+    <circle cx="196" cy="70" r="15" fill="#e0e7ff"/>
+    <circle cx="208" cy="128" r="17" fill="#fbbf24"/>
+    <circle cx="196" cy="186" r="15" fill="#e0e7ff"/>
+  </g>
+
+  <!-- Title -->
+  <text x="88" y="236" font-size="64" font-weight="700" fill="#ffffff">Movie Recommendation</text>
+  <text x="88" y="306" font-size="64" font-weight="700" fill="#a5b4fc">System</text>
+  <text x="88" y="356" font-size="26" fill="#c7d2fe">Content-based recommendations from TF-IDF, SVD</text>
+  <text x="88" y="392" font-size="26" fill="#c7d2fe">and top-K cosine neighbours. Django app and training</text>
+  <text x="88" y="428" font-size="26" fill="#c7d2fe">pipeline in one repository.</text>
+
+  <!-- Result panel -->
+  <g transform="translate(930 66)">
+    <rect width="600" height="392" rx="22" fill="#111633" stroke="#312e81" stroke-width="2"/>
+    <text x="32" y="52" font-size="17" font-weight="600" fill="#818cf8" letter-spacing="1.5">MOVIES LIKE</text>
+    <text x="32" y="92" font-size="32" font-weight="700" fill="#ffffff">Spirited Away</text>
+    <text x="568" y="92" font-size="20" fill="#94a3b8" text-anchor="end">2001</text>
+    <line x1="32" y1="116" x2="568" y2="116" stroke="#312e81" stroke-width="2"/>
+
+    <g font-size="23" fill="#e2e8f0">
+      <text x="32" y="162">Kiki's Delivery Service</text>
+      <text x="32" y="222">My Neighbor Totoro</text>
+      <text x="32" y="282">The Secret World of Arrietty</text>
+      <text x="32" y="342">Howl's Moving Castle</text>
+    </g>
+    <g font-size="21" font-weight="600" fill="#fbbf24" text-anchor="end">
+      <text x="568" y="162">0.80</text>
+      <text x="568" y="222">0.74</text>
+      <text x="568" y="282">0.70</text>
+      <text x="568" y="342">0.67</text>
+    </g>
+    <g fill="url(#bar)">
+      <rect x="32" y="176" width="428" height="8" rx="4" opacity="0.95"/>
+      <rect x="32" y="236" width="396" height="8" rx="4" opacity="0.85"/>
+      <rect x="32" y="296" width="374" height="8" rx="4" opacity="0.75"/>
+      <rect x="32" y="356" width="357" height="8" rx="4" opacity="0.65"/>
+    </g>
+  </g>
+</svg>

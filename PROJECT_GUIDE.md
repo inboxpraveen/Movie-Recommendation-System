@@ -67,7 +67,7 @@ This guide provides comprehensive documentation for the Movie Recommendation Sys
 
 | Component | Minimum | Recommended |
 |-----------|---------|-------------|
-| **Python** | 3.10+ | 3.10+ |
+| **Python** | 3.11+ | 3.12 |
 | **RAM** | 4GB | 8GB+ |
 | **Storage** | 2GB | 5GB+ |
 | **OS** | Windows/macOS/Linux | Any |
@@ -92,8 +92,8 @@ This guide provides comprehensive documentation for the Movie Recommendation Sys
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/movie-recommendation-system.git
-cd movie-recommendation-system
+git clone https://github.com/inboxpraveen/Movie-Recommendation-System.git
+cd Movie-Recommendation-System
 ```
 
 ### Step 2: Create Virtual Environment
@@ -228,26 +228,30 @@ curl "http://localhost:8000/api/search/?q=matrix"
 1. User Input
    └─> "Inception"
 
-2. Fuzzy Matching
-   └─> Find closest title in database
-       └─> "Inception" (exact match) ✓
+2. Title Matching
+   └─> Exact, then prefix, then substring, then fuzzy
+       └─> "Inception" (exact match)
 
 3. Get Movie Index
    └─> title_to_idx["Inception"] = 42
 
-4. Fetch Similarity Scores
-   └─> similarity_matrix[42] = [0.95, 0.87, 0.82, ...]
+4. Read Precomputed Neighbours
+   └─> neighbors_idx[42]    = [118, 3071, 977, ...]   (memory-mapped)
+   └─> neighbors_scores[42] = [0.62, 0.55, 0.53, ...]
 
-5. Sort & Filter
-   └─> Top 15 similar movies (excluding input)
-   └─> Apply filters (rating, year, genre)
+5. Filter
+   └─> Drop the input movie, keep the first 15
+   └─> Over-fetch first when a minimum rating is set
 
-6. Format Response
-   └─> Return movie details with metadata
+6. Build Response
+   └─> Look up metadata rows, format ratings, genres, links
 
 7. Display Results
-   └─> Render cards with ratings, genres, links
+   └─> Render cards with ratings, genres, similarity, links
 ```
+
+The neighbour arrays are produced by the trainer, so a search never computes
+similarity at request time; it reads one row.
 
 ### Content-Based Filtering
 
@@ -266,9 +270,10 @@ The system uses **content-based filtering** with these features:
    - Measures similarity between movie vectors
    - Ranges from 0 (completely different) to 1 (identical)
 
-4. **Ranking & Filtering**
-   - Ranks movies by similarity score
-   - Applies user-defined filters (year, rating, genre)
+4. **Top-K Neighbours**
+   - The trainer keeps the 50 most similar movies per title
+   - The web app returns the best 15, optionally above a minimum rating
+   - `training/infer.py` adds year and genre filters for use from your own code
 
 For more details, see [training/guide.md - How It Works](training/guide.md)
 
@@ -314,20 +319,22 @@ trainer = MovieRecommenderTrainer(
 )
 
 # Train on your dataset
-df, sim_matrix = trainer.train(
+df, neighbors = trainer.train(
     'path/to/your/dataset.csv',
     quality_threshold='medium',  # low/medium/high
-    max_movies=100000
+    max_movies=50000
 )
 ```
 
 ### Training Configurations
 
-| Configuration | Movies | Time | Memory | Model Size | Use Case |
-|--------------|--------|------|--------|------------|----------|
-| **Small** | 10K | 2 min | 500MB | 40MB | Testing |
-| **Medium** ⭐ | 100K | 15 min | 2GB | 180MB | Production |
-| **Large** | 1M+ | 60 min | 6GB | 800MB | Full dataset |
+Measured on the TMDB v11 dataset (1.49 million rows):
+
+| Configuration | Command | Movies | Time | Peak memory | Model files |
+|---------------|---------|--------|------|-------------|-------------|
+| **Small** | `-q high -m 10000` | 6,248 | 31 s | 2.5 GB | 3.8 MB |
+| **Default** | no flags (`-q medium`) | 26,326 | about 1 min | 2.5 GB | 16.1 MB |
+| **Large** | `-q low -m 100000` | 100,000 | 4.3 min | 3.9 GB | 61.5 MB |
 
 ### Dataset Requirements
 
@@ -367,12 +374,17 @@ Your model directory must contain:
 ```
 models/
 ├── movie_metadata.parquet    # Required
-├── similarity_matrix.npy     # Required (or .npz)
 ├── title_to_idx.json         # Required
-├── config.json               # Optional (for metadata)
-├── tfidf_vectorizer.pkl      # Optional (for retraining)
-└── svd_model.pkl            # Optional (for retraining)
+├── config.json               # Required
+├── neighbors_idx.npy         # Required (default format)
+├── neighbors_scores.npy      # Required (default format)
+├── tfidf_vectorizer.pkl      # Optional (for retraining only)
+└── svd_model.pkl             # Optional (for retraining only)
 ```
+
+A directory written with `--legacy-matrix` has `similarity_matrix.npz` or
+`similarity_matrix.npy` instead of the two `neighbors_*` files. The app still
+reads both layouts.
 
 ### Verifying Model
 
@@ -383,9 +395,9 @@ curl http://localhost:8000/api/health/
 # Response shows model information
 {
   "status": "healthy",
-  "movies_loaded": 100000,
-  "model_dir": "./models",
-  "model_loaded": true
+  "model_loaded": true,
+  "movies_loaded": 6248,
+  "model_dir": "demo_model"
 }
 ```
 
@@ -602,7 +614,7 @@ level too deep and the app will not find the artifacts. `render.yaml` unpacks
 the archive into `MODEL_DIR` during the build. This is build-time only; the
 app never downloads anything while serving.
 
-Nothing loaded at serving time is a pickle — the app reads parquet, JSON and
+Nothing loaded at serving time is a pickle: the app reads parquet, JSON and
 numpy arrays (`np.load` and `load_npz` both refuse pickled data by default).
 The `.pkl` files a training run produces are for retraining, not serving.
 
@@ -619,7 +631,7 @@ Before deploying to production:
       `DEBUG=False`)
 - [ ] Configure `ALLOWED_HOSTS`
 - [ ] Make a model reachable (option A or B above)
-- [ ] Run `collectstatic` as part of the build — the manifest static storage
+- [ ] Run `collectstatic` as part of the build, because the manifest static storage
       needs it, and without it every page returns a 500
 - [ ] Confirm `/api/health/` reports `"status": "healthy"`
 - [ ] Set up monitoring against `/api/health/`
@@ -725,7 +737,7 @@ Three things that will bite you if changed:
 
 `.dockerignore` deliberately does *not* exclude `models/`. Docker does not read
 `.gitignore`, so `COPY . .` is what puts your locally trained model into the
-image — that is the whole Docker workflow: train, then build.
+image. That is the whole Docker workflow: train, then build.
 
 ### Deploy to AWS
 
@@ -734,7 +746,7 @@ image — that is the whole Docker workflow: train, then build.
 pip install awsebcli
 
 # Initialize
-eb init -p python-3.10 movie-recommender
+eb init -p python-3.12 movie-recommender
 
 # Create environment
 eb create movie-recommender-env
@@ -797,10 +809,12 @@ curl "http://localhost:8000/api/search/?q=matrix"
 {
   "movies": [
     "The Matrix",
+    "The Animatrix",
     "The Matrix Reloaded",
-    "The Matrix Revolutions"
+    "The Matrix Revolutions",
+    "The Matrix Resurrections"
   ],
-  "count": 3
+  "count": 5
 }
 ```
 
@@ -821,15 +835,18 @@ curl "http://localhost:8000/api/health/"
 ```json
 {
   "status": "healthy",
-  "movies_loaded": 100000,
-  "model_dir": "./models",
-  "model_loaded": true
+  "model_loaded": true,
+  "movies_loaded": 6248,
+  "model_dir": "demo_model"
 }
 ```
 
+While a model is still loading the response is
+`{"status": "starting", "model_loaded": false, "progress": 40}`.
+
 **Status Codes:**
-- `200 OK` - Service healthy
-- `503 Service Unavailable` - Service unhealthy
+- `200 OK` - Healthy, or still starting (so platform health checks do not kill a slow first load)
+- `503 Service Unavailable` - No model found, or loading failed (`status: unhealthy` with a `reason`)
 
 ---
 
@@ -1099,7 +1116,7 @@ See [training/guide.md - Troubleshooting](training/guide.md) for training-specif
 A: No. A 6,248-movie demo model is committed in `demo_model/` and is picked up automatically, so a fresh clone works immediately. Train your own only if you want a larger catalogue or a different dataset (see Model Training).
 
 **Q: What's the difference between `models/` and `static/`?**  
-A: `static/` holds web assets such as the icon. `demo_model/` holds the committed demo model and is found automatically. `models/` is git-ignored and is where your own trained models go — point `MODEL_DIR` at it, or at any directory with the same layout.
+A: `static/` holds web assets such as the icon. `demo_model/` holds the committed demo model and is found automatically. `models/` is git-ignored and is where your own trained models go. Point `MODEL_DIR` at it, or at any directory with the same layout.
 
 **Q: How do I switch between models?**  
 A: Set the `MODEL_DIR` environment variable:
@@ -1163,8 +1180,9 @@ A:
 - [pandas Documentation](https://pandas.pydata.org/)
 
 ### Community
-- GitHub Issues - Bug reports and feature requests
-- GitHub Discussions - Questions and community support
+- [GitHub Issues](https://github.com/inboxpraveen/Movie-Recommendation-System/issues) - Bug reports and feature requests
+- [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute
+- [SECURITY.md](SECURITY.md) - How to report a vulnerability
 
 ---
 

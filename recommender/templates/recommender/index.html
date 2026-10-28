@@ -624,7 +624,7 @@
             <div class="feature-card">
                 <div class="feature-icon" aria-hidden="true">🤖</div>
                 <h3 class="feature-title">Content-based</h3>
-                <p class="feature-description">Matches on genre, keywords, cast and plot</p>
+                <p class="feature-description">Matches on genres, keywords, studios and plot</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon" aria-hidden="true">⚡</div>
@@ -694,7 +694,7 @@
             if (!movies.length) {
                 var empty = document.createElement('li');
                 empty.className = 'autocomplete-empty';
-                empty.textContent = 'No matching titles — you can still search.';
+                empty.textContent = 'No matching titles. You can still search.';
                 list.appendChild(empty);
                 list.classList.add('open');
                 input.setAttribute('aria-expanded', 'true');
